@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/user")
 
-const authMiddleware = ( req, res, next ) =>
+const authMiddleware = async ( req, res, next ) =>
 {
     try
     {
@@ -18,9 +19,30 @@ const authMiddleware = ( req, res, next ) =>
             token,
             process.env.jwt_secret
         );
-        req.user = decoded;
 
-        next();
+        const user = await User.findById(decoded.id);
+
+        if(!user)
+        {
+            return res.status(401).json({
+                success: false,
+                messsage: "Incorrect Token"
+            });
+        }
+
+        if(decoded.tokenVersion === user.tokenVersion)
+        {
+            req.user = decoded;
+            console.log("Token authorized...")
+            next();
+        }
+        else
+        {
+            return res.status(401).json({
+                success: false,
+                message: "Token Expired"
+            });
+        }
     }
     catch(error)
     {
