@@ -1,10 +1,24 @@
 const User = require("../models/user");
 const bcrypt = require("bcrypt");
+const generateToken = require("../utils/generateToken");
 
 const loginUser = async (req, res) => {
     try
     {
+        const admin = await User.findOne({ email: "admin@gmail.com" });
+        if(!admin)
+        {
+            console.log("Admin credentials missing!");
+        }
+
         const { email, password } = req.body;
+        if(!email || !password)
+        {
+            return res.status(401).json({
+                message: "Both email and password are required"
+            });
+        }
+
         const existingUser = await User.findOne({ email });
         if(!existingUser)
         {
@@ -12,6 +26,27 @@ const loginUser = async (req, res) => {
             return res.status(401).json({
                 success: false,
                 message: "User does not exist"
+            });
+        }
+
+        if(existingUser.email == admin.email)
+        {
+            const match = await bcrypt.compare(password, existingUser.password);
+            if(!match)
+            {
+                return res.status(401).json({
+                    success: false,
+                    message: "Incorrect email or password!"
+                });
+            }
+
+            const token = generateToken(existingUser.id, admin.tokenVersion)
+            console.log("Admin just logged in!");
+            return res.status(200).json({
+                success: true,
+                message: "logged in as Admin",
+                admin,
+                token
             });
         }
 
@@ -29,7 +64,6 @@ const loginUser = async (req, res) => {
         }
         else
         {
-            const generateToken = require("../utils/generateToken");
             const token = generateToken(existingUser.id, existingUser.tokenVersion);   
             res.status(200).json({
                 success: true,
