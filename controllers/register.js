@@ -1,5 +1,6 @@
 const User = require("../models/user");
 const bcrypt = require("bcrypt");
+const Role = require("../models/roleSchema")
 
 const registerUser = async (req, res) => {
     try
@@ -18,11 +19,13 @@ const registerUser = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         let tokenVersion = 0;
+        let userRole = await Role.findOne({ name: "user" });
         const user = await User.create({
             name,
             email,
             password: hashedPassword,
-            tokenVersion
+            tokenVersion,
+            role: userRole
         });
 
         res.status(201).json({

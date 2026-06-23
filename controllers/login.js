@@ -1,11 +1,12 @@
 const User = require("../models/user");
+const Role = require("../models/roleSchema");
 const bcrypt = require("bcrypt");
 const generateToken = require("../utils/generateToken");
 
 const loginUser = async (req, res) => {
     try
     {
-        const admin = await User.findOne({ email: "admin@gmail.com" });
+        const admin = await User.findOne({ email: "admin@example.com" }).populate("role");
         if(!admin)
         {
             console.log("Admin credentials missing!");
@@ -19,7 +20,7 @@ const loginUser = async (req, res) => {
             });
         }
 
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ email }).populate("role");
         if(!existingUser)
         {
             console.log("LoginError: User does not Exist");
@@ -40,7 +41,7 @@ const loginUser = async (req, res) => {
                 });
             }
 
-            const token = generateToken(existingUser.id, admin.tokenVersion)
+            const token = generateToken(admin);
             console.log("Admin just logged in!");
             return res.status(200).json({
                 success: true,
@@ -64,7 +65,8 @@ const loginUser = async (req, res) => {
         }
         else
         {
-            const token = generateToken(existingUser.id, existingUser.tokenVersion);   
+            console.log(existingUser);
+            const token = generateToken(existingUser);   
             res.status(200).json({
                 success: true,
                 message: "Logged in successfully",
@@ -79,7 +81,7 @@ const loginUser = async (req, res) => {
         console.log(`Error in loginUser: ${error}`)
         res.status(500).json({
             success: false,
-            message: "Internal Server Error!"
+            message: "Internal Server Error while logging you in"
         });
     }
 }
@@ -87,7 +89,7 @@ const loginUser = async (req, res) => {
 const getProfile = async (req, res) => {
     try
     {
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(req.user.id).populate("role");
 
         if(!user)
         {
@@ -114,7 +116,7 @@ const updateProfile = async (req, res) => {
     try
     {
         const { name, password } = req.body;
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(req.user.id).populate("role");
 
         if(!user)
         {
@@ -150,7 +152,7 @@ const updateProfile = async (req, res) => {
 const deleteUser = async (req, res) => {
     try
     {
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(req.user.id).populate("role");
         if(!user)
         {
             return res.status(404).json({
@@ -182,7 +184,7 @@ const deleteUser = async (req, res) => {
 const logoutUser = async (req, res) => {
     try
     {
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(req.user.id).populate("role");
         if(!user)
         {
             return res.status(404).json({
@@ -208,11 +210,41 @@ const logoutUser = async (req, res) => {
         });
     }
 }
+
+const getAllUsers = async (req, res) => {
+    try
+    {
+        const users = await User.find().populate("role");
+        if(!users)
+        {
+            return res.status(201).json({
+                success: false,
+                message: "No users in the database"
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "All user fetched successfully",
+            data: users
+        });
+        console.log("All users fetched!");
+    }
+    catch(error)
+    {
+        console.log(`Error while fetching all users: ${error}`);
+        res.status(500).json({
+            success: false,
+            message: "Internal Server error while fetching all users"
+        });
+    }
+}
  
 module.exports = { 
     loginUser,
     getProfile,
     updateProfile,
     deleteUser,
-    logoutUser
+    logoutUser,
+    getAllUsers
 };

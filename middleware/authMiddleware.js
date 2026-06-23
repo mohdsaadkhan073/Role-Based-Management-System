@@ -20,7 +20,7 @@ const authMiddleware = async ( req, res, next ) =>
             process.env.jwt_secret
         );
 
-        const user = await User.findById(decoded.id);
+        const user = await User.findById(decoded.id).populate("role");
 
         if(!user)
         {
@@ -29,10 +29,10 @@ const authMiddleware = async ( req, res, next ) =>
                 messsage: "Incorrect Token"
             });
         }
-
-        if(decoded.tokenVersion === user.tokenVersion)
+        
+        if(decoded.version === user.tokenVersion)
         {
-            req.user = decoded;
+            req.user = user;
             console.log("Token authorized...")
             next();
         }
